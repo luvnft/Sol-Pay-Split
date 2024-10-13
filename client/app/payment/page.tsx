@@ -15,16 +15,17 @@ export default function Payment() {
   }, []);
 
   
-  const handleInputChange = (e) => {
+  const handleInputChange = (e:any) => {
     const value = e.target.value;
 
-    
+    //Regex to accept only numbers as input
     const regex = /^\d*\.?\d*$/; 
     if (regex.test(value)) {
       setInput(value); 
     }
   };
 
+  //Solves hydration error
   if (!isMounted) {
     return null;
   }

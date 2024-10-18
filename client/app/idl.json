@@ -1,0 +1,161 @@
+{
+    "address": "TaYugu1XXYgCH943XDc9Cvk7jJsEaAcM8AD4b4VffdU",
+    "metadata": {
+    "name": "payment_splitter",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+    },
+    "instructions": [
+      {
+        "name": "initialize",
+        "accounts": [
+          {
+            "name": "escrowAccount",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "sender",
+            "isMut": true,
+            "isSigner": true
+          },
+          {
+            "name": "systemProgram",
+            "isMut": false,
+            "isSigner": false
+          }
+        ],
+        "args": [
+          {
+            "name": "totalAmount",
+            "type": "u64"
+          }
+        ]
+      },
+      {
+        "name": "addRecipients",
+        "accounts": [
+          {
+            "name": "escrowAccount",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "sender",
+            "isMut": true,
+            "isSigner": true
+          }
+        ],
+        "args": [
+          {
+            "name": "recipients",
+            "type": {
+              "vec": {
+                "defined": "(Pubkey,u64)"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "approve",
+        "accounts": [
+          {
+            "name": "escrowAccount",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "sender",
+            "isMut": true,
+            "isSigner": true
+          }
+        ],
+        "args": []
+      },
+      {
+        "name": "delete",
+        "accounts": [
+          {
+            "name": "escrowAccount",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "sender",
+            "isMut": true,
+            "isSigner": true
+          }
+        ],
+        "args": []
+      }
+    ],
+    "accounts": [
+      {
+        "name": "EscrowAccount",
+        "type": {
+          "kind": "struct",
+          "fields": [
+            {
+              "name": "sender",
+              "type": "publicKey"
+            },
+            {
+              "name": "totalAmount",
+              "type": "u64"
+            },
+            {
+              "name": "recipients",
+              "type": {
+                "vec": {
+                  "defined": "Recipient"
+                }
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "types": [
+      {
+        "name": "Recipient",
+        "type": {
+          "kind": "struct",
+          "fields": [
+            {
+              "name": "recipient",
+              "type": "publicKey"
+            },
+            {
+              "name": "amount",
+              "type": "u64"
+            }
+          ]
+        }
+      }
+    ],
+    "errors": [
+      {
+        "code": 6000,
+        "name": "TooManyRecipients",
+        "msg": "Too many recipients."
+      },
+      {
+        "code": 6001,
+        "name": "Unauthorized",
+        "msg": "Unauthorized action."
+      },
+      {
+        "code": 6002,
+        "name": "InsufficientFunds",
+        "msg": "Insufficient funds in escrow."
+      },
+      {
+        "code": 6003,
+        "name": "RecipientNotFound",
+        "msg": "Recipient not found."
+      }
+    ]
+  }
+  

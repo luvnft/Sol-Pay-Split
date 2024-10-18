@@ -1,6 +1,13 @@
 use anchor_lang::prelude::*;
 
-declare_id!("EWbzbZCDrQ8NmUhj8ygqF2WzCsJLksV8dXt9veUEHbAf");
+declare_id!("51VTJbTHiSic7bZpPRwQUqF5jDBCkvdKgJKCJVTGaEvq");
+
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+pub struct Recipient {
+    pub recipient: Pubkey,
+    pub amount: u64,
+}
 
 #[program]
 pub mod payment_splitter {
@@ -10,21 +17,6 @@ pub mod payment_splitter {
         let escrow_account = &mut ctx.accounts.escrow_account;
         escrow_account.sender = *ctx.accounts.sender.key;
         escrow_account.total_amount = total_amount;
-        Ok(())
-    }
-
-    pub fn add_recipients(ctx: Context<AddRecipients>, recipients: Vec<(Pubkey, u64)>) -> Result<()> {
-        let escrow_account = &mut ctx.accounts.escrow_account;
-
-        // Check if adding these recipients would exceed the limit
-        if escrow_account.recipients.len() + recipients.len() > 10 {
-            return Err(ErrorCode::TooManyRecipients.into());
-        }
-
-        // Add each recipient and their amount
-        for (recipient, amount) in recipients {
-            escrow_account.recipients.push(Recipient { recipient, amount });
-        }
         Ok(())
     }
 
@@ -50,6 +42,50 @@ pub mod payment_splitter {
 
         Ok(())
     }
+
+    pub fn delete(ctx: Context<Delete>) -> Result<()> {
+        let escrow_account = &mut ctx.accounts.escrow_account;
+        let sender = &ctx.accounts.sender;
+    
+        // Check that the sender is the escrow account's sender
+        if escrow_account.sender != *sender.key {
+            return Err(ErrorCode::Unauthorized.into());
+        }
+    
+    
+        let escrow_lamports = **escrow_account.to_account_info().lamports.borrow();
+        let sender_lamports = **sender.to_account_info().lamports.borrow();
+        **sender.to_account_info().lamports.borrow_mut() = sender_lamports.checked_add(escrow_lamports).ok_or(ErrorCode::InsufficientFunds)?;
+        **escrow_account.to_account_info().lamports.borrow_mut() = 0;
+    
+        Ok(())
+    }
+
+
+    pub fn add_recipients(ctx: Context<AddRecipients>, recipients: Vec<Recipient>) -> Result<()> {
+        let escrow_account = &mut ctx.accounts.escrow_account;
+
+        // Check if adding these recipients would exceed the limit
+        if escrow_account.recipients.len() + recipients.len() > 10 {
+            return Err(ErrorCode::TooManyRecipients.into());
+        }
+
+        // Add each recipient and their amount
+        for recipient in recipients {
+            escrow_account.recipients.push(recipient);
+        }
+        Ok(())
+    }
+    
+}
+
+
+#[derive(Accounts)]
+pub struct AddRecipients<'info> {
+    #[account(mut, seeds = [b"escrow", sender.key().as_ref()], bump)] // Use the same seed to find the PDA
+    pub escrow_account: Account<'info, EscrowAccount>,
+    #[account(mut)]
+    pub sender: Signer<'info>,
 }
 
 #[derive(Accounts)]
@@ -67,13 +103,8 @@ pub struct Initialize<'info> {
     pub system_program: Program<'info, System>,
 }
 
-#[derive(Accounts)]
-pub struct AddRecipients<'info> {
-    #[account(mut, seeds = [b"escrow", sender.key().as_ref()], bump)] // Use the same seed to find the PDA
-    pub escrow_account: Account<'info, EscrowAccount>,
-    #[account(mut)]
-    pub sender: Signer<'info>,
-}
+
+
 
 #[derive(Accounts)]
 pub struct Approve<'info> {
@@ -83,6 +114,15 @@ pub struct Approve<'info> {
     pub sender: Signer<'info>,
 }
 
+#[derive(Accounts)]
+pub struct Delete<'info> {
+    #[account(mut, seeds = [b"escrow", sender.key().as_ref()], bump, close = sender)] // Close the account and send remaining lamports to the sender
+    pub escrow_account: Account<'info, EscrowAccount>,
+    #[account(mut)]
+    pub sender: Signer<'info>,
+}
+
+
 #[account]
 pub struct EscrowAccount {
     pub sender: Pubkey,
@@ -90,11 +130,6 @@ pub struct EscrowAccount {
     pub recipients: Vec<Recipient>,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct Recipient {
-    pub recipient: Pubkey,
-    pub amount: u64,
-}
 
 #[error_code]
 pub enum ErrorCode {

@@ -3,14 +3,17 @@
 import React, { useEffect, useState } from "react";
 import { BackgroundLines } from "@/components/ui/background-lines";
 import { useWallet, WalletContextState } from "@solana/wallet-adapter-react";
-import { Connection, PublicKey, SystemProgram, clusterApiUrl } from "@solana/web3.js";
+import { Connection, LAMPORTS_PER_SOL, PublicKey, SystemProgram, clusterApiUrl } from "@solana/web3.js";
 import { AnchorProvider, Idl, Program, web3, BN } from "@coral-xyz/anchor";
 import idl from "../../../anchor/target/idl/payment_splitter.json";
+
 
 export default function Payment() {
   const wallet = useWallet();
   const [isMounted, setIsMounted] = useState(false);
   const [input, setInput] = useState("");
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [amount, setAmount] = useState("");
 
   type SolanaWallet = WalletContextState & {
     publicKey: PublicKey;
@@ -34,22 +37,65 @@ export default function Payment() {
 
   useEffect(() => {
     setIsMounted(true);
+    checkEscrowAccount();
   }, []);
+
+  const checkEscrowAccount = async () => {
+    if (wallet.publicKey) {
+      const [escrowPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from("escrow"), wallet.publicKey.toBuffer()],
+        program.programId
+      );
+  
+      const escrowAccountInfo = await connection.getAccountInfo(escrowPDA);
+      if (escrowAccountInfo) {
+        const escrowAccount = await program.account.escrowAccount.fetch(escrowPDA);
+        const totalAmountInLamports = new BN(escrowAccount.totalAmount.words);
+        console.log(totalAmountInLamports / LAMPORTS_PER_SOL);
+        setIsInitialized(true);
+      }
+    }
+  };
 
   const handleInputChange = (e: any) => {
     const value = e.target.value;
-
-    // Regex to accept only numbers as input
     const regex = /^\d*\.?\d*$/;
     if (regex.test(value)) {
       setInput(value);
     }
   };
 
+  const handleDelete = async () => {
+  if (wallet.publicKey) {
+    try {
+      const [escrowPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from("escrow"), wallet.publicKey.toBuffer()],
+        program.programId
+      );
+
+      await program.methods
+        .delete()
+        .accounts({
+          escrowAccount: escrowPDA,
+          sender: wallet.publicKey,
+        })
+        .rpc();
+
+      console.log("Escrow account deleted!");
+      setIsInitialized(false); // Reset the initialized state
+    } catch (error) {
+      console.error("Error deleting escrow account:", error);
+    }
+  } else {
+    console.log("Wallet not connected");
+  }
+};
+
+
   const Initialize = async () => {
     if (wallet.publicKey) {
       try {
-        const totalAmount = new BN(Number(input) * web3.LAMPORTS_PER_SOL); // Convert SOL to lamports
+        const totalAmount = new BN(Number(input) * web3.LAMPORTS_PER_SOL);
         const [escrowPDA] = PublicKey.findProgramAddressSync(
           [Buffer.from("escrow"), wallet.publicKey.toBuffer()],
           program.programId
@@ -65,15 +111,13 @@ export default function Payment() {
           .rpc();
 
         console.log("Escrow account initialized!");
-      } catch (error) {
-        console.error("Error initializing escrow:", error);
+        setIsInitialized(true);
+      } catch(err) {
+        console.log(err);
       }
-    } else {
-      console.log("Wallet not connected");
     }
   };
 
-  // Solves hydration error
   if (!isMounted) {
     return null;
   }
@@ -106,11 +150,27 @@ export default function Payment() {
               <button
                 onClick={Initialize}
                 className="bg-gradient-to-r from-green-400 to-green-600 text-white px-4 py-2 mt-6 rounded-lg transition duration-300 hover:from-green-500 hover:to-green-700"
+                disabled={isInitialized}
               >
                 Initialize
               </button>
             ) : (
               <p className="text-white">Enter some amount</p>
+            )}
+            {isInitialized && (
+              <>
+                <button
+                  className="bg-gradient-to-r from-purple-400 to-purple-600 text-white px-4 py-2 mt-6 rounded-lg transition duration-300 hover:from-blue-500 hover:to-blue-700"
+                >
+                  Make Payment
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="bg-gradient-to-r from-red-400 to-red-600 text-white px-4 py-2 mt-6 rounded-lg transition duration-300 hover:from-red-500 hover:to-red-700"
+                >
+                  Delete
+                </button>
+              </>
             )}
           </div>
         ) : (

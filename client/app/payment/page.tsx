@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
@@ -56,6 +57,7 @@ export default function Payment() {
 
       const escrowAccountInfo = await connection.getAccountInfo(escrowPDA);
       if (escrowAccountInfo) {
+        //@ts-ignore
         const escrowAccount = await program.account.escrowAccount.fetch(
           escrowPDA
         );
@@ -235,7 +237,7 @@ export default function Payment() {
         );
 
         console.log("Escrow PDA:", escrowPDA.toBase58());
-
+        //@ts-ignore
         const escrowAccount = await program.account.escrowAccount.fetch(
           escrowPDA
         );

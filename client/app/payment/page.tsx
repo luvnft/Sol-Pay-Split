@@ -12,7 +12,7 @@ import {
   clusterApiUrl,
 } from "@solana/web3.js";
 import { AnchorProvider, Idl, Program, web3, BN } from "@coral-xyz/anchor";
-import idl from "../../../anchor/target/idl/payment_splitter.json";
+import idl from "../idl.json";
 import { Modal } from "../Components/Modal";
 import { FaTrash } from "react-icons/fa";
 

@@ -1,161 +1,293 @@
 {
-    "address": "TaYugu1XXYgCH943XDc9Cvk7jJsEaAcM8AD4b4VffdU",
-    "metadata": {
+  "address": "3VUAmbhTKjakn6Ei5etWfKExXtPCgTfYFDiF6doy1GFr",
+  "metadata": {
     "name": "payment_splitter",
     "version": "0.1.0",
     "spec": "0.1.0",
     "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "add_recipients",
+      "discriminator": [
+        5,
+        225,
+        132,
+        145,
+        74,
+        149,
+        84,
+        180
+      ],
+      "accounts": [
+        {
+          "name": "escrow_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sender"
+              }
+            ]
+          }
+        },
+        {
+          "name": "sender",
+          "writable": true,
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "recipients",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "Recipient"
+              }
+            }
+          }
+        }
+      ]
     },
-    "instructions": [
-      {
-        "name": "initialize",
-        "accounts": [
-          {
-            "name": "escrowAccount",
-            "isMut": true,
-            "isSigner": false
-          },
+    {
+      "name": "approve",
+      "discriminator": [
+        69,
+        74,
+        217,
+        36,
+        115,
+        117,
+        97,
+        76
+      ],
+      "accounts": [
+        {
+          "name": "escrow_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sender"
+              }
+            ]
+          }
+        },
+        {
+          "name": "sender",
+          "writable": true,
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "delete",
+      "discriminator": [
+        165,
+        204,
+        60,
+        98,
+        134,
+        15,
+        83,
+        134
+      ],
+      "accounts": [
+        {
+          "name": "escrow_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sender"
+              }
+            ]
+          }
+        },
+        {
+          "name": "sender",
+          "writable": true,
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize",
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "escrow_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sender"
+              }
+            ]
+          }
+        },
+        {
+          "name": "sender",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "total_amount",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "EscrowAccount",
+      "discriminator": [
+        36,
+        69,
+        48,
+        18,
+        128,
+        225,
+        125,
+        135
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "TooManyRecipients",
+      "msg": "Too many recipients."
+    },
+    {
+      "code": 6001,
+      "name": "Unauthorized",
+      "msg": "Unauthorized action."
+    },
+    {
+      "code": 6002,
+      "name": "InsufficientFunds",
+      "msg": "Insufficient funds in escrow."
+    },
+    {
+      "code": 6003,
+      "name": "RecipientNotFound",
+      "msg": "Recipient not found."
+    },
+    {
+      "code": 6004,
+      "name": "Overflow",
+      "msg": "Overflow has occured."
+    }
+  ],
+  "types": [
+    {
+      "name": "EscrowAccount",
+      "type": {
+        "kind": "struct",
+        "fields": [
           {
             "name": "sender",
-            "isMut": true,
-            "isSigner": true
+            "type": "pubkey"
           },
           {
-            "name": "systemProgram",
-            "isMut": false,
-            "isSigner": false
-          }
-        ],
-        "args": [
-          {
-            "name": "totalAmount",
+            "name": "total_amount",
             "type": "u64"
-          }
-        ]
-      },
-      {
-        "name": "addRecipients",
-        "accounts": [
-          {
-            "name": "escrowAccount",
-            "isMut": true,
-            "isSigner": false
           },
-          {
-            "name": "sender",
-            "isMut": true,
-            "isSigner": true
-          }
-        ],
-        "args": [
           {
             "name": "recipients",
             "type": {
               "vec": {
-                "defined": "(Pubkey,u64)"
+                "defined": {
+                  "name": "Recipient"
+                }
               }
             }
           }
         ]
-      },
-      {
-        "name": "approve",
-        "accounts": [
+      }
+    },
+    {
+      "name": "Recipient",
+      "type": {
+        "kind": "struct",
+        "fields": [
           {
-            "name": "escrowAccount",
-            "isMut": true,
-            "isSigner": false
+            "name": "recipient",
+            "type": "pubkey"
           },
           {
-            "name": "sender",
-            "isMut": true,
-            "isSigner": true
+            "name": "amount",
+            "type": "u64"
           }
-        ],
-        "args": []
-      },
-      {
-        "name": "delete",
-        "accounts": [
-          {
-            "name": "escrowAccount",
-            "isMut": true,
-            "isSigner": false
-          },
-          {
-            "name": "sender",
-            "isMut": true,
-            "isSigner": true
-          }
-        ],
-        "args": []
+        ]
       }
-    ],
-    "accounts": [
-      {
-        "name": "EscrowAccount",
-        "type": {
-          "kind": "struct",
-          "fields": [
-            {
-              "name": "sender",
-              "type": "publicKey"
-            },
-            {
-              "name": "totalAmount",
-              "type": "u64"
-            },
-            {
-              "name": "recipients",
-              "type": {
-                "vec": {
-                  "defined": "Recipient"
-                }
-              }
-            }
-          ]
-        }
-      }
-    ],
-    "types": [
-      {
-        "name": "Recipient",
-        "type": {
-          "kind": "struct",
-          "fields": [
-            {
-              "name": "recipient",
-              "type": "publicKey"
-            },
-            {
-              "name": "amount",
-              "type": "u64"
-            }
-          ]
-        }
-      }
-    ],
-    "errors": [
-      {
-        "code": 6000,
-        "name": "TooManyRecipients",
-        "msg": "Too many recipients."
-      },
-      {
-        "code": 6001,
-        "name": "Unauthorized",
-        "msg": "Unauthorized action."
-      },
-      {
-        "code": 6002,
-        "name": "InsufficientFunds",
-        "msg": "Insufficient funds in escrow."
-      },
-      {
-        "code": 6003,
-        "name": "RecipientNotFound",
-        "msg": "Recipient not found."
-      }
-    ]
-  }
-  
+    }
+  ]
+}

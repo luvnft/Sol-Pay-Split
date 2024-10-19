@@ -4,12 +4,17 @@
 import React, { useEffect, useState } from "react";
 import { BackgroundLines } from "@/components/ui/background-lines";
 import { useWallet, WalletContextState } from "@solana/wallet-adapter-react";
-import { Connection, LAMPORTS_PER_SOL, PublicKey, SystemProgram, clusterApiUrl } from "@solana/web3.js";
+import {
+  Connection,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+  SystemProgram,
+  clusterApiUrl,
+} from "@solana/web3.js";
 import { AnchorProvider, Idl, Program, web3, BN } from "@coral-xyz/anchor";
 import idl from "../../../anchor/target/idl/payment_splitter.json";
 import { Modal } from "../Components/Modal";
 import { FaTrash } from "react-icons/fa";
-
 
 export default function Payment() {
   const wallet = useWallet();
@@ -27,17 +32,13 @@ export default function Payment() {
     signAllTransactions(txs: web3.Transaction[]): Promise<web3.Transaction[]>;
   };
 
-  const opts: web3.ConnectionConfig = { commitment: 'processed' };
+  const opts: web3.ConnectionConfig = { commitment: "processed" };
   const connection = new Connection(clusterApiUrl("devnet"), opts.commitment);
 
-  const provider = new AnchorProvider(
-    connection,
-    wallet as SolanaWallet,
-    {
-      preflightCommitment: opts.commitment,
-      commitment: opts.commitment,
-    }
-  );
+  const provider = new AnchorProvider(connection, wallet as SolanaWallet, {
+    preflightCommitment: opts.commitment,
+    commitment: opts.commitment,
+  });
 
   const program = new Program<Idl>(idl as Idl, provider);
 
@@ -52,30 +53,43 @@ export default function Payment() {
         [Buffer.from("escrow"), wallet.publicKey.toBuffer()],
         program.programId
       );
-  
+
       const escrowAccountInfo = await connection.getAccountInfo(escrowPDA);
       if (escrowAccountInfo) {
-        const escrowAccount = await program.account.escrowAccount.fetch(escrowPDA);
-        
+        const escrowAccount = await program.account.escrowAccount.fetch(
+          escrowPDA
+        );
+
         // Log totalAmount in lamports
         const totalAmountInLamports = escrowAccount.totalAmount.words[0]; // Assuming totalAmount is in a BN structure
         console.log("Total Amount in Lamports:", totalAmountInLamports);
-        
+
         // Log totalAmount in SOL
-        console.log("Total Amount in SOL:", totalAmountInLamports / LAMPORTS_PER_SOL);
-  
+        console.log(
+          "Total Amount in SOL:",
+          totalAmountInLamports / LAMPORTS_PER_SOL
+        );
+
         setIsInitialized(true);
-  
+
         // Fetch and set existing recipients
-        const existingRecipients = escrowAccount.recipients.map((recipient: any) => ({
-          publicKey: recipient.recipient.toBase58(),
-          amount: recipient.amount / LAMPORTS_PER_SOL,
-        }));
-        setRecipients(new Map(existingRecipients.map((r: { publicKey: any; amount: any; }) => [r.publicKey, r.amount])));
+        const existingRecipients = escrowAccount.recipients.map(
+          (recipient: any) => ({
+            publicKey: recipient.recipient.toBase58(),
+            amount: recipient.amount / LAMPORTS_PER_SOL,
+          })
+        );
+        setRecipients(
+          new Map(
+            existingRecipients.map((r: { publicKey: any; amount: any }) => [
+              r.publicKey,
+              r.amount,
+            ])
+          )
+        );
       }
     }
   };
-  
 
   const handleConfirmRecipients = async () => {
     if (wallet.publicKey && recipients.size > 0) {
@@ -84,13 +98,15 @@ export default function Payment() {
           [Buffer.from("escrow"), wallet.publicKey.toBuffer()],
           program.programId
         );
-  
+
         // Convert the recipients map to an array of objects
-        const recipientsArray = Array.from(recipients.entries()).map(([key, amount]) => ({
-          recipient: new PublicKey(key),
-          amount: new BN(amount * LAMPORTS_PER_SOL), // Convert SOL to lamports
-        }));
-  
+        const recipientsArray = Array.from(recipients.entries()).map(
+          ([key, amount]) => ({
+            recipient: new PublicKey(key),
+            amount: new BN(amount * LAMPORTS_PER_SOL), // Convert SOL to lamports
+          })
+        );
+
         // Send the recipients array to the blockchain
         await program.methods
           .addRecipients(recipientsArray)
@@ -99,7 +115,7 @@ export default function Payment() {
             sender: wallet.publicKey,
           })
           .rpc();
-  
+
         console.log("Recipients added successfully!");
         setIsModalOpen(false); // Close the modal after confirmation
       } catch (error) {
@@ -111,10 +127,9 @@ export default function Payment() {
       alert("Please connect your wallet and add recipients before confirming.");
     }
   };
-  
 
   const handleDeleteRecipient = (publicKey: string) => {
-    setRecipients(prev => {
+    setRecipients((prev) => {
       const updatedRecipients = new Map(prev);
       updatedRecipients.delete(publicKey);
       return updatedRecipients;
@@ -143,7 +158,9 @@ export default function Payment() {
 
   const handleAddRecipient = () => {
     if (recipientPublicKey && recipientAmount) {
-      setRecipients(prev => new Map(prev).set(recipientPublicKey, parseFloat(recipientAmount)));
+      setRecipients((prev) =>
+        new Map(prev).set(recipientPublicKey, parseFloat(recipientAmount))
+      );
       setRecipientPublicKey("");
       setRecipientAmount("");
     }
@@ -195,7 +212,7 @@ export default function Payment() {
 
         console.log("Escrow account initialized!");
         setIsInitialized(true);
-      } catch(err) {
+      } catch (err) {
         console.log(err);
       }
     }
@@ -211,45 +228,46 @@ export default function Payment() {
 
   const disbursePayment = async () => {
     if (wallet.publicKey) {
-        try {
-            const [escrowPDA] = PublicKey.findProgramAddressSync(
-                [Buffer.from("escrow"), wallet.publicKey.toBuffer()],
-                program.programId
-            );
+      try {
+        const [escrowPDA] = PublicKey.findProgramAddressSync(
+          [Buffer.from("escrow"), wallet.publicKey.toBuffer()],
+          program.programId
+        );
 
-            console.log("Escrow PDA:", escrowPDA.toBase58());
+        console.log("Escrow PDA:", escrowPDA.toBase58());
 
-            const escrowAccount = await program.account.escrowAccount.fetch(escrowPDA);
-            const recipientsArray = escrowAccount.recipients.map((recipient: any) => ({
-                recipientPublicKey: new PublicKey(recipient.recipient),
-                amount: recipient.amount,
-            }));
+        const escrowAccount = await program.account.escrowAccount.fetch(
+          escrowPDA
+        );
+        const recipientsArray = escrowAccount.recipients.map(
+          (recipient: any) => ({
+            recipientPublicKey: new PublicKey(recipient.recipient),
+            amount: recipient.amount,
+          })
+        );
 
-            const remainingAccounts = recipientsArray.map((recipient: any) => ({
-                pubkey: recipient.recipientPublicKey,
-                isSigner: false,
-                isWritable: true,
-            }));
+        const remainingAccounts = recipientsArray.map((recipient: any) => ({
+          pubkey: recipient.recipientPublicKey,
+          isSigner: false,
+          isWritable: true,
+        }));
 
-            await program.methods
-                .approve()
-                .accounts({
-                    escrowAccount: escrowPDA,
-                    sender: wallet.publicKey,
-                    systemProgram: SystemProgram.programId,
-                })
-                .remainingAccounts(remainingAccounts)
-                .rpc();
+        await program.methods
+          .approve()
+          .accounts({
+            escrowAccount: escrowPDA,
+            sender: wallet.publicKey,
+            systemProgram: SystemProgram.programId,
+          })
+          .remainingAccounts(remainingAccounts)
+          .rpc();
 
-            console.log("Payment disbursed successfully!");
-
-        } catch (error) {
-            console.error(error);
-        }
+        console.log("Payment disbursed successfully!");
+      } catch (error) {
+        console.error(error);
+      }
     }
-};
-
-  
+  };
 
   if (!isMounted) {
     return null;
@@ -258,23 +276,23 @@ export default function Payment() {
   return (
     <BackgroundLines
       svgOptions={{ duration: 3 }}
-      className="flex items-center justify-center w-full flex-col px-4"
+      className="flex items-center justify-center w-full flex-col px-4 h-screen sm:h-auto"
     >
-      <div className="w-[60%] h-[60%] bg-white/10 backdrop-blur-md rounded-lg p-8 shadow-lg flex flex-col justify-center items-center space-y-6">
+      <div className="w-full sm:w-[60%] h-full sm:h-[60%] bg-white/10 backdrop-blur-md rounded-lg p-4 sm:p-8 shadow-lg flex flex-col justify-center items-center space-y-4 sm:space-y-6">
         {wallet.publicKey ? (
           <div className="text-center">
-            <h4 className="text-white text-3xl font-bold mb-4">
+            <h4 className="text-white text-2xl sm:text-3xl font-bold mb-2 sm:mb-4">
               Connected Wallet:
             </h4>
-            <p className="text-white text-lg mb-6">
+            <p className="text-white text-base sm:text-lg mb-4 sm:mb-6 max-w-xs overflow-hidden whitespace-nowrap text-ellipsis">
               {wallet.publicKey.toBase58()}
             </p>
-            <h2 className="text-white text-xl font-semibold mb-2">
+            <h2 className="text-white text-lg sm:text-xl font-semibold mb-2">
               Enter Total Amount:
             </h2>
             <input
               type="number"
-              className="w-full p-3 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
+              className="sm:w-3/4 max-w-full p-2 sm:p-3 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
               placeholder="Amount in SOL"
               value={input}
               disabled={isInitialized}
@@ -283,7 +301,7 @@ export default function Payment() {
             {input ? (
               <button
                 onClick={Initialize}
-                className="bg-gradient-to-r mx-5 from-green-400 to-green-600 text-white px-4 py-2 mt-6 rounded-lg transition duration-300 hover:from-green-500 hover:to-green-700 mb-4"
+                className="bg-gradient-to-r mx-2 sm:mx-5 from-green-400 to-green-600 text-white px-3 sm:px-4 py-1 sm:py-2 mt-4 sm:mt-6 rounded-lg transition duration-300 hover:from-green-500 hover:to-green-700 mb-2 sm:mb-4"
                 disabled={isInitialized}
               >
                 Initialize
@@ -295,19 +313,19 @@ export default function Payment() {
               <>
                 <button
                   onClick={handleRecipients}
-                  className="bg-gradient-to-r mx-5 from-purple-400 to-purple-600 text-white px-4 py-2 mt-6 rounded-lg transition duration-300 hover:from-blue-500 hover:to-blue-700 mb-4"
+                  className="bg-gradient-to-r mx-2 sm:mx-5 from-purple-400 to-purple-600 text-white px-3 sm:px-4 py-1 sm:py-2 mt-4 sm:mt-6 rounded-lg transition duration-300 hover:from-blue-500 hover:to-blue-700 mb-2 sm:mb-4"
                 >
                   Add Recipients
                 </button>
                 <button
                   onClick={handleDelete}
-                  className="bg-gradient-to-r mx-5 from-red-400 to-red-600 text-white px-4 py-2 mt-6 rounded-lg transition duration-300 hover:from-red-500 hover:to-red-700"
+                  className="bg-gradient-to-r mx-2 sm:mx-5 from-red-400 to-red-600 text-white px-3 sm:px-4 py-1 sm:py-2 mt-4 sm:mt-6 rounded-lg transition duration-300 hover:from-red-500 hover:to-red-700"
                 >
                   Delete
                 </button>
                 <button
                   onClick={disbursePayment}
-                  className="bg-gradient-to-r mx-5 from-green-400 to-green-600 text-white px-4 py-2 mt-6 rounded-lg transition duration-300 hover:from-yellow-500 hover:to-yellow-700"
+                  className="bg-gradient-to-r mx-2 sm:mx-5 from-green-400 to-green-600 text-white px-3 sm:px-4 py-1 sm:py-2 mt-4 sm:mt-6 rounded-lg transition duration-300 hover:from-yellow-500 hover:to-yellow-700"
                 >
                   Disburse
                 </button>
@@ -315,47 +333,56 @@ export default function Payment() {
             )}
           </div>
         ) : (
-          <h4 className="text-white text-2xl font-bold">No Wallet Connected</h4>
+          <h4 className="text-white text-xl sm:text-2xl font-bold">
+            No Wallet Connected
+          </h4>
         )}
       </div>
 
       <Modal isOpen={isModalOpen} onClose={handleCloseModal}>
-        <h2 className="text-xl font-bold mb-4">Add Recipients</h2>
+        <h2 className="text-lg sm:text-xl font-bold mb-2 sm:mb-4">
+          Add Recipients
+        </h2>
         <input
           type="text"
-          className="w-full p-3 mb-4 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full p-2 sm:p-3 mb-2 sm:mb-4 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-indigo-500"
           placeholder="Recipient Public Key"
           value={recipientPublicKey}
           onChange={handleRecipientPublicKeyChange}
         />
         <input
           type="number"
-          className="w-full p-3 mb-4 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full p-2 sm:p-3 mb-2 sm:mb-4 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-indigo-500"
           placeholder="Amount in SOL"
           value={recipientAmount}
           onChange={handleRecipientAmountChange}
         />
-        <div className="flex justify-end space-x-4">
+        <div className="flex justify-end space-x-2 sm:space-x-4">
           <button
             onClick={handleAddRecipient}
-            className="bg-gradient-to-r from-green-400 to-green-600 text-white px-4 py-2 rounded-lg transition duration-300 hover:from-green-500 hover:to-green-700"
+            className="bg-gradient-to-r from-green-400 to-green-600 text-white px-3 sm:px-4 py-1 sm:py-2 rounded-lg transition duration-300 hover:from-green-500 hover:to-green-700"
           >
             Add
           </button>
           <button
             onClick={handleConfirmRecipients}
-            className="bg-gradient-to-r from-blue-400 to-blue-600 text-white px-4 py-2 rounded-lg transition duration-300 hover:from-blue-500 hover:to-blue-700"
+            className="bg-gradient-to-r from-blue-400 to-blue-600 text-white px-3 sm:px-4 py-1 sm:py-2 rounded-lg transition duration-300 hover:from-blue-500 hover:to-blue-700"
           >
             Confirm
           </button>
         </div>
-        <div className="mt-6 p-4 bg-gray-800 rounded-lg shadow-inner">
-          <h3 className="text-lg font-semibold text-white mb-2">Recipients List</h3>
+        <div className="mt-4 sm:mt-6 p-2 sm:p-4 bg-gray-800 rounded-lg shadow-inner">
+          <h3 className="text-base sm:text-lg font-semibold text-white mb-2">
+            Recipients List
+          </h3>
           {recipients.size > 0 ? (
             <ul className="space-y-2">
               {Array.from(recipients.entries()).map(([key, amount], index) => (
-                <li key={index} className="text-white flex justify-between items-center">
-                  <div>
+                <li
+                  key={index}
+                  className="text-white flex justify-between items-center"
+                >
+                  <div className="max-w-xs overflow-hidden whitespace-nowrap text-ellipsis">
                     <span className="font-bold">Public Key:</span> {key} <br />
                     <span className="font-bold">Amount:</span> {amount} SOL
                   </div>

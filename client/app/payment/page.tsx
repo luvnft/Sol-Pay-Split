@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -8,6 +9,7 @@ import { AnchorProvider, Idl, Program, web3, BN } from "@coral-xyz/anchor";
 import idl from "../../../anchor/target/idl/payment_splitter.json";
 import { Modal } from "../Components/Modal";
 import { FaTrash } from "react-icons/fa";
+
 
 export default function Payment() {
   const wallet = useWallet();
@@ -26,7 +28,7 @@ export default function Payment() {
   };
 
   const opts: web3.ConnectionConfig = { commitment: 'processed' };
-  const connection = new Connection(clusterApiUrl('devnet'), opts.commitment);
+  const connection = new Connection(clusterApiUrl("devnet"), opts.commitment);
 
   const provider = new AnchorProvider(
     connection,
@@ -54,12 +56,26 @@ export default function Payment() {
       const escrowAccountInfo = await connection.getAccountInfo(escrowPDA);
       if (escrowAccountInfo) {
         const escrowAccount = await program.account.escrowAccount.fetch(escrowPDA);
-        const totalAmountInLamports = new BN(escrowAccount.totalAmount.words);
-        console.log(totalAmountInLamports / LAMPORTS_PER_SOL);
+        
+        // Log totalAmount in lamports
+        const totalAmountInLamports = escrowAccount.totalAmount.words[0]; // Assuming totalAmount is in a BN structure
+        console.log("Total Amount in Lamports:", totalAmountInLamports);
+        
+        // Log totalAmount in SOL
+        console.log("Total Amount in SOL:", totalAmountInLamports / LAMPORTS_PER_SOL);
+  
         setIsInitialized(true);
+  
+        // Fetch and set existing recipients
+        const existingRecipients = escrowAccount.recipients.map((recipient: any) => ({
+          publicKey: recipient.recipient.toBase58(),
+          amount: recipient.amount / LAMPORTS_PER_SOL,
+        }));
+        setRecipients(new Map(existingRecipients.map((r: { publicKey: any; amount: any; }) => [r.publicKey, r.amount])));
       }
     }
   };
+  
 
   const handleConfirmRecipients = async () => {
     if (wallet.publicKey && recipients.size > 0) {
@@ -185,13 +201,55 @@ export default function Payment() {
     }
   };
 
-  const handleMakePaymentClick = () => {
+  const handleRecipients = () => {
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
   };
+
+  const disbursePayment = async () => {
+    if (wallet.publicKey) {
+        try {
+            const [escrowPDA] = PublicKey.findProgramAddressSync(
+                [Buffer.from("escrow"), wallet.publicKey.toBuffer()],
+                program.programId
+            );
+
+            console.log("Escrow PDA:", escrowPDA.toBase58());
+
+            const escrowAccount = await program.account.escrowAccount.fetch(escrowPDA);
+            const recipientsArray = escrowAccount.recipients.map((recipient: any) => ({
+                recipientPublicKey: new PublicKey(recipient.recipient),
+                amount: recipient.amount,
+            }));
+
+            const remainingAccounts = recipientsArray.map((recipient: any) => ({
+                pubkey: recipient.recipientPublicKey,
+                isSigner: false,
+                isWritable: true,
+            }));
+
+            await program.methods
+                .approve()
+                .accounts({
+                    escrowAccount: escrowPDA,
+                    sender: wallet.publicKey,
+                    systemProgram: SystemProgram.programId,
+                })
+                .remainingAccounts(remainingAccounts)
+                .rpc();
+
+            console.log("Payment disbursed successfully!");
+
+        } catch (error) {
+            console.error(error);
+        }
+    }
+};
+
+  
 
   if (!isMounted) {
     return null;
@@ -236,16 +294,22 @@ export default function Payment() {
             {isInitialized && (
               <>
                 <button
-                  onClick={handleMakePaymentClick}
+                  onClick={handleRecipients}
                   className="bg-gradient-to-r mx-5 from-purple-400 to-purple-600 text-white px-4 py-2 mt-6 rounded-lg transition duration-300 hover:from-blue-500 hover:to-blue-700 mb-4"
                 >
-                  Make Payment
+                  Add Recipients
                 </button>
                 <button
                   onClick={handleDelete}
                   className="bg-gradient-to-r mx-5 from-red-400 to-red-600 text-white px-4 py-2 mt-6 rounded-lg transition duration-300 hover:from-red-500 hover:to-red-700"
                 >
                   Delete
+                </button>
+                <button
+                  onClick={disbursePayment}
+                  className="bg-gradient-to-r mx-5 from-green-400 to-green-600 text-white px-4 py-2 mt-6 rounded-lg transition duration-300 hover:from-yellow-500 hover:to-yellow-700"
+                >
+                  Disburse
                 </button>
               </>
             )}
@@ -255,7 +319,6 @@ export default function Payment() {
         )}
       </div>
 
-      
       <Modal isOpen={isModalOpen} onClose={handleCloseModal}>
         <h2 className="text-xl font-bold mb-4">Add Recipients</h2>
         <input
@@ -280,7 +343,7 @@ export default function Payment() {
             Add
           </button>
           <button
-          onClick={handleConfirmRecipients}
+            onClick={handleConfirmRecipients}
             className="bg-gradient-to-r from-blue-400 to-blue-600 text-white px-4 py-2 rounded-lg transition duration-300 hover:from-blue-500 hover:to-blue-700"
           >
             Confirm
@@ -309,13 +372,7 @@ export default function Payment() {
             <p className="text-white">No recipients added yet.</p>
           )}
         </div>
-</Modal>
-
+      </Modal>
     </BackgroundLines>
   );
 }
-
-
-
-// exytS6zzAEgnp5MHehHV5G28CDQxWyU4bMvzXdYmGGK
-// 6Eo9TkNmkfzHALnk9G5VU9enTznye2MjyRZ1mUBZieW5

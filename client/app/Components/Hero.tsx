@@ -8,7 +8,7 @@ import {
   WalletMultiButton,
 } from "@solana/wallet-adapter-react-ui";
 import { useRouter } from "next/navigation";
-import { FaTwitter, FaGithub, FaLinkedin } from "react-icons/fa"; // Import Font Awesome icons
+import { FaTwitter, FaLinkedin } from "react-icons/fa"; // Import Font Awesome icons
 
 export function Hero() {
   const wallet = useWallet();

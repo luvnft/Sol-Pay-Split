@@ -41,7 +41,7 @@ export function Hero() {
         Payment Splitter
       </h2>
       <p className="max-w-xl mx-auto text-sm sm:text-base md:text-lg text-neutral-400 text-center mt-2 sm:mt-4">
-        Make multiple transactions in one go
+        Make multiple transactions in one click
       </p>
 
       {wallet.publicKey ? (
@@ -69,21 +69,14 @@ export function Hero() {
       {/* Social Media Icons */}
       <div className="absolute bottom-4 left-4 flex space-x-4">
         <a
-          href="https://x.com/SolDadddyy"
+          href="https://x.com/luvnft"
           target="_blank"
           rel="noopener noreferrer"
         >
           <FaTwitter className="text-white hover:text-blue-500" size={24} />
         </a>
         <a
-          href="https://github.com/mrb1nary"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <FaGithub className="text-white hover:text-gray-500" size={24} />
-        </a>
-        <a
-          href="https://www.linkedin.com/in/anubhab-nayak-b84b35112/"
+          href="https://www.linkedin.com/in/hassanterry/"
           target="_blank"
           rel="noopener noreferrer"
         >

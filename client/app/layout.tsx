@@ -30,7 +30,7 @@ const geistMono = localFont({
   return (
     <html lang="en">
       <head>
-        <title>Solana Payment</title>
+        <title>SPLIT</title>
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
